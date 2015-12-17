@@ -464,6 +464,7 @@ public:
        std::unique_ptr<llvm::MemoryBuffer> moduleDocInputBuffer,
        bool isFramework, std::unique_ptr<ModuleFile> &theModule,
        serialization::ExtendedValidationInfo *extInfo = nullptr) {
+    printf("Modulefile::load\n");
     theModule.reset(new ModuleFile(std::move(moduleInputBuffer),
                                    std::move(moduleDocInputBuffer),
                                    isFramework, extInfo));

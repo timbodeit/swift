@@ -726,8 +726,12 @@ ModuleFile::ModuleFile(
                         getEndBytePtr(this->ModuleInputBuffer.get())),
       ModuleDocInputReader(getStartBytePtr(this->ModuleDocInputBuffer.get()),
                            getEndBytePtr(this->ModuleDocInputBuffer.get())) {
+                             printf("Initializing ModuleFile\n");
   assert(getStatus() == Status::Valid);
+
+                             printf("- Passed Status:Valid check\n");
   Bits.IsFramework = isFramework;
+                             printf("- IsFramework %i\n", isFramework);
 
   PrettyModuleFileDeserialization stackEntry(*this);
 
@@ -735,6 +739,7 @@ ModuleFile::ModuleFile(
 
   if (!checkModuleSignature(cursor) ||
       !enterTopLevelModuleBlock(cursor, MODULE_BLOCK_ID)) {
+        printf("- About to error()");
     error();
     return;
   }
@@ -755,8 +760,10 @@ ModuleFile::ModuleFile(
         error(info.status);
         return;
       }
+      printf("- A control with name and TargetTriple? Lets dump them\n");
       Name = info.name;
       TargetTriple = info.targetTriple;
+      printf("- name: %s triple: %s\n", Name.data(), TargetTriple.data());
 
       hasValidControlBlock = true;
       break;
@@ -764,9 +771,12 @@ ModuleFile::ModuleFile(
 
     case INPUT_BLOCK_ID: {
       if (!hasValidControlBlock) {
+        printf("- About to error()2");
         error();
         return;
       }
+
+      printf("INPUT_BLOCK_ID\n");
 
       cursor.EnterSubBlock(INPUT_BLOCK_ID);
       bool seenFlags = false;
@@ -785,6 +795,7 @@ ModuleFile::ModuleFile(
           break;
         }
         case input_block::LINK_LIBRARY: {
+          printf("input_block LINK_LIBRARY \n");
           uint8_t rawKind;
           bool shouldForceLink;
           input_block::LinkLibraryLayout::readRecord(scratch, rawKind,
@@ -842,6 +853,7 @@ ModuleFile::ModuleFile(
     }
 
     case DECLS_AND_TYPES_BLOCK_ID: {
+      printf("DECLS_AND_TYPES_BLOCK_ID\n");
       if (!hasValidControlBlock) {
         error();
         return;
@@ -863,6 +875,7 @@ ModuleFile::ModuleFile(
     }
 
     case IDENTIFIER_DATA_BLOCK_ID: {
+      printf("IDENTIFIER_DATA_BLOCK_ID\n");
       if (!hasValidControlBlock) {
         error();
         return;
@@ -899,6 +912,8 @@ ModuleFile::ModuleFile(
     }
 
     case INDEX_BLOCK_ID: {
+      printf("INDEX_BLOCK_ID\n");
+
       if (!hasValidControlBlock || !readIndexBlock(cursor)) {
         error();
         return;
@@ -907,6 +922,8 @@ ModuleFile::ModuleFile(
     }
 
     case SIL_INDEX_BLOCK_ID: {
+      printf("SIL_INDEX_BLOCK_ID\n");
+
       // Save the cursor.
       SILIndexCursor = cursor;
       SILIndexCursor.EnterSubBlock(SIL_INDEX_BLOCK_ID);
@@ -920,12 +937,14 @@ ModuleFile::ModuleFile(
     }
 
     case SIL_BLOCK_ID: {
+      printf("SIL_BLOCK_ID\n");
       // Save the cursor.
       SILCursor = cursor;
       SILCursor.EnterSubBlock(SIL_BLOCK_ID);
 
       // With the main cursor, skip over the block and continue.
       if (cursor.SkipBlock()) {
+        printf("SIL_BLOCK_IDerror\n");
         error();
         return;
       }
@@ -936,6 +955,7 @@ ModuleFile::ModuleFile(
       // Unknown top-level block, possibly for use by a future version of the
       // module format.
       if (cursor.SkipBlock()) {
+        printf("DefaultSkipBlockError\n");
         error();
         return;
       }
@@ -945,13 +965,22 @@ ModuleFile::ModuleFile(
     topLevelEntry = cursor.advance(AF_DontPopBlockAtEnd);
   }
 
+  printf("Out of switch statement\n");
+
   if (topLevelEntry.Kind != llvm::BitstreamEntry::EndBlock) {
+    printf("Wrong topLevelEntry.Kind\n");
+    printf("  - Should be llvm::BitstreamEntry::EndBlock\n");
+    printf("  - is %i\n",topLevelEntry.Kind);
     error();
     return;
   }
 
+
+  printf("Passed topLevelEntry check\n");
+
   if (!this->ModuleDocInputBuffer)
     return;
+    printf("ckpt 1\n");
 
   llvm::BitstreamCursor docCursor{ModuleDocInputReader};
   if (!checkModuleDocSignature(docCursor) ||
@@ -960,12 +989,15 @@ ModuleFile::ModuleFile(
     return;
   }
 
+    printf("ckpt 2\n");
+
   topLevelEntry = docCursor.advance();
   while (topLevelEntry.Kind == llvm::BitstreamEntry::SubBlock) {
     switch (topLevelEntry.ID) {
     case COMMENT_BLOCK_ID: {
       if (!hasValidControlBlock || !readCommentBlock(docCursor)) {
         error(Status::MalformedDocumentation);
+    printf("ckpt 3.1\n");
         return;
       }
       break;
@@ -975,14 +1007,17 @@ ModuleFile::ModuleFile(
       // Unknown top-level block, possibly for use by a future version of the
       // module format.
       if (docCursor.SkipBlock()) {
+        printf("ckpt 3.2\n");
         error(Status::MalformedDocumentation);
         return;
       }
       break;
     }
 
+    printf("ckpt 3.4\n");
     topLevelEntry = docCursor.advance(AF_DontPopBlockAtEnd);
   }
+    printf("ckpt 3.0\n");
 
   if (topLevelEntry.Kind != llvm::BitstreamEntry::EndBlock) {
     error(Status::MalformedDocumentation);

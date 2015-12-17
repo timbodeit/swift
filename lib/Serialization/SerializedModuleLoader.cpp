@@ -131,8 +131,10 @@ findModule(ASTContext &ctx, AccessPathElem moduleID,
   }
 
   // If we're not allowed to look in the runtime library import path, stop.
-  if (ctx.SearchPathOpts.SkipRuntimeLibraryImportPath)
+  if (ctx.SearchPathOpts.SkipRuntimeLibraryImportPath) {
+    printf("Stopping because not allowed to look in runtime library import path\n");
     return std::make_error_code(std::errc::no_such_file_or_directory);
+  }
 
   // Search the runtime import path.
   isFramework = false;
@@ -160,6 +162,7 @@ FileUnit *SerializedModuleLoader::loadAST(
     return nullptr;
   }
 
+  printf("loadAST\n");
   serialization::ExtendedValidationInfo extendedInfo;
   std::unique_ptr<ModuleFile> loadedModuleFile;
   serialization::Status err = ModuleFile::load(std::move(moduleInputBuffer),
