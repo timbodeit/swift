@@ -33,7 +33,9 @@
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Process.h"
 
-#if defined(__APPLE__)
+#define BUILD_IOS 1
+
+#if defined(__APPLE__) && !defined(BUILD_IOS)
 // FIXME: Support REPL on non-Apple platforms. Ubuntu 14.10's editline does not
 // include the wide character entry points needed by the REPL yet.
 #include <histedit.h>
@@ -130,7 +132,7 @@ public:
 
 using Convert = ConvertForWcharSize<sizeof(wchar_t)>;
   
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(BUILD_IOS)
 static void convertFromUTF8(llvm::StringRef utf8,
                             llvm::SmallVectorImpl<wchar_t> &out) {
   size_t reserve = out.size() + utf8.size();
@@ -162,7 +164,7 @@ static void convertToUTF8(llvm::ArrayRef<wchar_t> wide,
 
 } // end anonymous namespace
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(BUILD_IOS)
 
 static bool appendToREPLFile(SourceFile &SF,
                              PersistentParserState &PersistentState,
