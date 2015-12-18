@@ -786,9 +786,16 @@ static void getRuntimeLibraryPath(SmallVectorImpl<char> &runtimeLibPath,
   } else {
     auto programPath = TC.getDriver().getSwiftProgramPath();
     runtimeLibPath.append(programPath.begin(), programPath.end());
+#if defined(__arm__) || defined(__arm64__)
+    llvm::sys::path::remove_filename(runtimeLibPath); // Remove /iOS-Swift
+    llvm::sys::path::append(runtimeLibPath, "Frameworks", "swift");
+    #warning iOS
+#else
     llvm::sys::path::remove_filename(runtimeLibPath); // remove /swift
     llvm::sys::path::remove_filename(runtimeLibPath); // remove /bin
     llvm::sys::path::append(runtimeLibPath, "lib", "swift");
+    #warning OSX
+#endif
   }
   llvm::sys::path::append(runtimeLibPath,
                           getPlatformNameForTriple(TC.getTriple()));

@@ -592,6 +592,63 @@ int Compilation::performSingleCommand(const Job *Cmd) {
   return ExecuteInPlace(ExecPath, argv);
 }
 
+int Compilation::performSingleCommand2(const Job *Cmd, int (*executionHandler)(const char *, const char**, const char**)) {
+  assert(Cmd->getInputs().empty() &&
+         "This can only be used to run a single command with no inputs");
+
+  switch (Cmd->getCondition()) {
+  case Job::Condition::CheckDependencies:
+    return 0;
+  case Job::Condition::RunWithoutCascading:
+  case Job::Condition::Always:
+  case Job::Condition::NewlyAdded:
+    break;
+  }
+
+  if (Level == OutputLevel::Verbose)
+    Cmd->printCommandLine(llvm::errs());
+
+  SmallVector<const char *, 128> Argv;
+  Argv.push_back(Cmd->getExecutable());
+  Argv.append(Cmd->getArguments().begin(), Cmd->getArguments().end());
+  Argv.push_back(0);
+
+  const char *ExecPath = Cmd->getExecutable();
+  const char **argv = Argv.data();
+
+  for (auto &envPair : Cmd->getExtraEnvironment())
+    setenv(envPair.first, envPair.second, /*replacing=*/true);
+
+  return executionHandler(ExecPath, argv,nullptr);
+}
+
+int Compilation::performJobs2(int (*executionHandler)(const char *, const char**, const char**)) {
+  // If we don't have to do any cleanup work, just exec the subprocess.
+  if (Level < OutputLevel::Parseable &&
+      (SaveTemps || TempFilePaths.empty()) &&
+      CompilationRecordPath.empty() &&
+      Jobs.size() == 1) {
+    return performSingleCommand2(Jobs.front().get(),executionHandler);
+  }
+
+  if (!TaskQueue::supportsParallelExecution() && NumberOfParallelCommands > 1) {
+    Diags.diagnose(SourceLoc(), diag::warning_parallel_execution_not_supported);
+  }
+
+  int result = performJobsImpl();
+
+  if (!SaveTemps) {
+    // FIXME: Do we want to be deleting temporaries even when a child process
+    // crashes?
+    for (auto &path : TempFilePaths) {
+      // Ignore the error code for removing temporary files.
+      (void)llvm::sys::fs::remove(path);
+    }
+  }
+
+  return result;
+}
+
 int Compilation::performJobs() {
   // If we don't have to do any cleanup work, just exec the subprocess.
   if (Level < OutputLevel::Parseable &&

@@ -160,10 +160,10 @@ KNOWN_SETTINGS=(
     install-xctest              ""               "whether to install xctest"
     install-foundation          ""               "whether to install foundation"
     darwin-install-extract-symbols ""            "whether to extract symbols with dsymutil during installations"
-    cross-compile-tools-deployment-targets ""    "space-separated list of targets to cross-compile host Swift tools for"
+    cross-compile-tools-deployment-targets "iphoneos-armv7 iphoneos-arm64"    "space-separated list of targets to cross-compile host Swift tools for"
     skip-merge-lipo-cross-compile-tools ""       "set to skip running merge-lipo after installing cross-compiled host Swift tools"
     darwin-deployment-version-osx     "10.9"     "minimum deployment target version for OS X"
-    darwin-deployment-version-ios     "7.0"      "minimum deployment target version for iOS"
+    darwin-deployment-version-ios     "8.0"      "minimum deployment target version for iOS"
     darwin-deployment-version-tvos    "9.0"      "minimum deployment target version for tvOS"
     darwin-deployment-version-watchos "2.0"      "minimum deployment target version for watchOS"
 
@@ -287,9 +287,13 @@ function set_deployment_target_based_options() {
                     llvm_target_arch="ARM"
                     cmake_osx_deployment_target=""
                     cmark_cmake_options=(
+                        -DHAVE_C99_SNPRINTF="1"
                         -DCMAKE_C_FLAGS="$(cmark_c_flags $deployment_target)"
                         -DCMAKE_CXX_FLAGS="$(cmark_c_flags $deployment_target)"
                         -DCMAKE_OSX_SYSROOT:PATH="$(xcrun --sdk $xcrun_sdk_name --show-sdk-path)"
+                    )
+                    llvm_cmake_options=(
+                        -DLLVM_ENABLE_THREADS="0"
                     )
                     swift_cmake_options=(
                         -DSWIFT_HOST_VARIANT="iphoneos"
@@ -303,9 +307,13 @@ function set_deployment_target_based_options() {
                     llvm_target_arch="AArch64"
                     cmake_osx_deployment_target=""
                     cmark_cmake_options=(
+                        -DHAVE_C99_SNPRINTF="1"
                         -DCMAKE_C_FLAGS="$(cmark_c_flags $deployment_target)"
                         -DCMAKE_CXX_FLAGS="$(cmark_c_flags $deployment_target)"
                         -DCMAKE_OSX_SYSROOT:PATH="$(xcrun --sdk $xcrun_sdk_name --show-sdk-path)"
+                    )
+                    llvm_cmake_options=(
+                        -DLLVM_ENABLE_THREADS="0"
                     )
                     swift_cmake_options=(
                         -DSWIFT_HOST_VARIANT="iphoneos"
@@ -2249,7 +2257,7 @@ if [[ "${INSTALLABLE_PACKAGE}" ]] ; then
 
       if [[ "${DARWIN_TOOLCHAIN_APPLICATION_CERT}" ]] ; then
         echo "-- Codesign xctoolchain --"
-        "${SWIFT_SOURCE_DIR}/utils/toolchain-codesign" "${DARWIN_TOOLCHAIN_APPLICATION_CERT}" "${INSTALL_DESTDIR}/${TOOLCHAIN_PREFIX}" 
+        "${SWIFT_SOURCE_DIR}/utils/toolchain-codesign" "${DARWIN_TOOLCHAIN_APPLICATION_CERT}" "${INSTALL_DESTDIR}/${TOOLCHAIN_PREFIX}"
       fi
       if [[ "${DARWIN_TOOLCHAIN_INSTALLER_PACKAGE}" ]] ; then
         echo "-- Create Installer --"

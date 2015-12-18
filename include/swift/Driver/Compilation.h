@@ -202,6 +202,7 @@ public:
   /// \returns result code for the Compilation's Jobs; 0 indicates success and
   /// -2 indicates that one of the Compilation's Jobs crashed during execution
   int performJobs();
+  int performJobs2(int (*executionHandler)(const char *, const char**, const char**));
 
 private:
   /// \brief Perform all jobs.
@@ -219,6 +220,7 @@ private:
   /// successfully executed. In the event of an error, this function will return
   /// a negative value indicating a failure to execute.
   int performSingleCommand(const Job *Cmd);
+  int performSingleCommand2(const Job *Cmd, int (*executionHandler)(const char *, const char**, const char**));
 };
 
 } // end namespace driver

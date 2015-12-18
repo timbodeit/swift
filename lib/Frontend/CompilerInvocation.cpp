@@ -33,9 +33,16 @@ swift::CompilerInvocation::CompilerInvocation() {
 
 void CompilerInvocation::setMainExecutablePath(StringRef Path) {
   llvm::SmallString<128> LibPath(Path);
+#if defined(__arm__) || defined(__arm64__)
+  llvm::sys::path::remove_filename(LibPath); // Remove /iOS-Swift
+  llvm::sys::path::append(LibPath, "Frameworks", "swift");
+  #warning iOS
+#else
   llvm::sys::path::remove_filename(LibPath); // Remove /swift
   llvm::sys::path::remove_filename(LibPath); // Remove /bin
   llvm::sys::path::append(LibPath, "lib", "swift");
+  #warning OSX
+#endif
   setRuntimeResourcePath(LibPath.str());
 }
 
